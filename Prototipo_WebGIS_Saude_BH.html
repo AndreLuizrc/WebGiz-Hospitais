@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>WebGIS Saúde BH</title>
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <style>
+    :root{--ink:#17324d;--muted:#63768a;--teal:#0f766e;--blue:#164e63;--line:#d9e4ea;--bg:#f3f7f9}
+    *{box-sizing:border-box}
+    body{margin:0;font:14px/1.45 Inter,"Segoe UI",Arial,sans-serif;color:var(--ink);background:var(--bg)}
+    header{min-height:68px;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;color:#fff;background:linear-gradient(120deg,#123e52,#0f766e);box-shadow:0 2px 12px #17324d33;position:relative;z-index:1000}
+    .brand{display:flex;align-items:center;gap:12px}.logo{width:40px;height:40px;border:1px solid #ffffff55;border-radius:12px;display:grid;place-items:center;background:#ffffff18;font-size:21px}
+    .brand h1{font-size:18px;line-height:1.1;margin:0}.brand small{color:#d5f5ed}.badge{padding:7px 10px;border-radius:99px;background:#ffffff18;border:1px solid #ffffff33;font-size:12px}
+    main{display:grid;grid-template-columns:330px minmax(420px,1fr) 360px;height:calc(100vh - 68px);min-height:600px}
+    .panel{background:#fff;overflow:auto}.controls{padding:20px;border-right:1px solid var(--line)}.results{border-left:1px solid var(--line);display:flex;flex-direction:column}
+    .map-wrap{position:relative;min-width:0}#map{height:100%;width:100%;background:#dce7ea}
+    .section-title{font-weight:800;font-size:15px;margin:0 0 4px}.section-copy{margin:0 0 16px;color:var(--muted);font-size:12px}
+    .field{margin:0 0 14px}.field label{font-size:12px;font-weight:700;display:block;margin:0 0 5px}
+    .field select,.field input{width:100%;padding:10px;border:1px solid #bfcfd8;border-radius:9px;background:#fff;color:var(--ink);outline:none}
+    .field select:focus{border-color:var(--teal);box-shadow:0 0 0 3px #0f766e18}.field input[readonly]{color:var(--muted);background:#f8fafc}
+    .location-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+    .query-help{padding:10px 11px;background:#f0f9ff;border-left:3px solid #0284c7;border-radius:6px;color:#31566d;font-size:11.5px;margin:-4px 0 14px}
+    button{font:inherit}.primary{width:100%;border:0;border-radius:10px;padding:12px 14px;color:#fff;font-weight:800;background:linear-gradient(120deg,#0f766e,#164e63);cursor:pointer;box-shadow:0 5px 12px #0f766e33}
+    .primary:hover:not(:disabled){filter:brightness(1.06)}.primary:disabled{opacity:.65;cursor:not-allowed}
+    .secondary{width:100%;border:1px solid #b9ccd3;background:#fff;border-radius:10px;padding:9px;color:var(--ink);cursor:pointer}.secondary:hover:not(:disabled){background:#f8fafc}.reset{margin-top:8px}
+    .legend{margin-top:18px;padding-top:15px;border-top:1px solid var(--line)}.legend h3{font-size:12px;margin:0 0 8px}.legend-row{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:11.5px;margin:5px 0}
+    .dot{width:11px;height:11px;border-radius:50%}.swatch{width:18px;height:9px;border-radius:2px;border:1px solid}
+    .map-status{position:absolute;z-index:500;left:12px;bottom:12px;background:#fffffff2;border:1px solid var(--line);border-radius:10px;padding:8px 11px;box-shadow:0 3px 12px #17324d22;font-size:11.5px;max-width:360px}.map-status strong{color:var(--teal)}
+    .results-head{padding:17px 17px 12px;border-bottom:1px solid var(--line)}.results-head h2{font-size:15px;margin:0}.summary{font-size:12px;color:var(--muted);margin-top:3px}
+    .results-list{padding:12px;overflow:auto;flex:1}.result{border:1px solid var(--line);border-radius:11px;padding:12px;margin:0 0 10px;background:#fff;cursor:pointer;transition:.15s}
+    .result:hover,.result.active{border-color:#4ca79f;box-shadow:0 4px 14px #0f766e19;transform:translateY(-1px)}.result-top{display:flex;gap:9px;align-items:flex-start}
+    .rank{width:25px;height:25px;display:grid;place-items:center;border-radius:8px;background:#e7f6f3;color:var(--teal);font-weight:800;flex:0 0 auto}
+    .result h3{font-size:13px;margin:1px 0 2px}.type{font-size:10.5px;color:var(--muted)}.distance{margin-left:auto;font-weight:800;color:var(--blue);white-space:nowrap}.address{margin:8px 0 0 34px;font-size:11.5px;color:var(--muted)}
+    .empty{padding:30px 15px;text-align:center;color:var(--muted)}.empty b{display:block;color:var(--ink);margin-bottom:5px}.footer-note{padding:10px 15px;border-top:1px solid var(--line);font-size:10.5px;color:var(--muted);background:#f8fafb}
+    .custom-pin{border:2px solid #fff;box-shadow:0 2px 5px #0005}.leaflet-popup-content{font-family:Inter,"Segoe UI",Arial,sans-serif}.leaflet-popup-content b{color:var(--blue)}
+    @media(max-width:1050px){main{grid-template-columns:300px 1fr}.results{position:absolute;right:8px;top:80px;bottom:10px;width:330px;z-index:800;box-shadow:0 6px 25px #17324d33;border:1px solid var(--line);border-radius:12px}}
+    @media(max-width:760px){header{height:auto;padding:12px 15px}.badge{display:none}main{display:block;height:auto}.controls{border:0}.map-wrap{height:460px}.results{position:static;width:auto;border-radius:0;box-shadow:none;max-height:550px}.panel{overflow:visible}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand"><div class="logo" aria-hidden="true">✚</div><div><h1>WebGIS Saúde BH</h1><small>Hospitais, farmácias e laboratórios próximos de você</small></div></div>
+    <div class="badge">Dados do OpenStreetMap</div>
+  </header>
+  <main>
+    <aside class="panel controls" aria-label="Parâmetros da consulta">
+      <h2 class="section-title">Escolha sua localização</h2>
+      <p class="section-copy">Use a localização do dispositivo ou clique no mapa para definir o ponto de partida.</p>
+      <div class="location-actions">
+        <button class="secondary" id="locate" type="button">Usar minha localização</button>
+        <button class="secondary" id="pick" type="button">Selecionar no mapa</button>
+      </div>
+      <div class="field"><label for="coordinates">Ponto selecionado</label><input id="coordinates" type="text" readonly value="Nenhuma localização selecionada"></div>
+      <div id="locationHelp" class="query-help">Selecione uma localização para habilitar a consulta.</div>
+      <div class="field"><label for="category">Tipo de estabelecimento</label><select id="category">
+        <option value="all" selected>Hospitais, farmácias e laboratórios</option>
+        <option value="hospital">Hospitais</option><option value="pharmacy">Farmácias</option><option value="lab">Laboratórios médicos</option>
+      </select></div>
+      <div class="field"><label for="radius">Raio de busca</label><select id="radius">
+        <option value="500">500 m</option><option value="1000" selected>1 km</option><option value="2000">2 km</option><option value="3000">3 km</option><option value="5000">5 km</option>
+      </select></div>
+      <div class="field"><label for="operator">Operador espacial</label><select id="operator">
+        <option value="within">Está contido — estabelecimento dentro do raio</option>
+        <option value="contains">Contém — região contém localização e estabelecimento</option>
+        <option value="intersects">Intersecta — ligação cruza área de atenção</option>
+      </select></div>
+      <div id="operatorHelp" class="query-help"></div>
+      <div class="field"><label for="sort">Ordenar resultados</label><select id="sort">
+        <option value="distance">Mais próximos primeiro</option><option value="alpha">Ordem alfabética</option>
+      </select></div>
+      <button class="primary" id="search" type="button" disabled>Buscar estabelecimentos próximos</button>
+      <button class="secondary reset" id="reset" type="button">Limpar localização</button>
+      <div class="legend"><h3>Camadas geográficas</h3>
+        <div class="legend-row"><span class="dot" style="background:#2563eb"></span> Sua localização</div>
+        <div class="legend-row"><span class="dot" style="background:#dc2626"></span> Hospital</div>
+        <div class="legend-row"><span class="dot" style="background:#0f766e"></span> Farmácia</div>
+        <div class="legend-row"><span class="dot" style="background:#7c3aed"></span> Laboratório médico</div>
+        <div class="legend-row"><span class="swatch" style="background:#0ea5e922;border-color:#0284c7"></span> Raio de busca</div>
+        <div class="legend-row"><span class="swatch" style="background:#10b98122;border-color:#0f766e"></span> Região de saúde</div>
+        <div class="legend-row"><span class="swatch" style="background:#f59e0b33;border-color:#d97706"></span> Área de atenção</div>
+        <div class="legend-row"><span style="width:18px;border-top:2px dashed #64748b"></span> Ligação localização–estabelecimento</div>
+      </div>
+    </aside>
+    <section class="map-wrap" aria-label="Mapa"><div id="map"></div><div class="map-status" id="mapStatus">Carregando mapa…</div></section>
+    <aside class="panel results" aria-live="polite">
+      <div class="results-head"><h2>Resultados</h2><div class="summary" id="summary">Selecione sua localização para começar.</div></div>
+      <div class="results-list" id="results"><div class="empty"><b>Nenhuma consulta executada</b>Use a geolocalização ou clique em um ponto no mapa.</div></div>
+      <div class="footer-note">Distâncias em linha reta pela fórmula de Haversine. Estabelecimentos obtidos do OpenStreetMap.</div>
+    </aside>
+  </main>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script>
+    const BH_CENTER={lat:-19.925,lng:-43.945};
+    const typeLabels={hospital:'Hospital',pharmacy:'Farmácia',lab:'Laboratório médico'};
+    const typeColors={hospital:'#dc2626',pharmacy:'#0f766e',lab:'#7c3aed'};
+    const regions=[
+      {name:'Região Centro–Hospitalar',coords:[[-19.939,-43.961],[-19.913,-43.961],[-19.913,-43.922],[-19.939,-43.922]]},
+      {name:'Região Leste–Saúde',coords:[[-19.934,-43.935],[-19.913,-43.935],[-19.913,-43.916],[-19.934,-43.916]]}
+    ];
+    const attention=[[-19.932,-43.944],[-19.920,-43.944],[-19.920,-43.936],[-19.932,-43.936]];
+    const operatorHelp={
+      within:'Seleciona estabelecimentos contidos no círculo definido pelo raio de busca.',
+      contains:'Seleciona estabelecimentos quando uma região de saúde contém simultaneamente sua localização e o estabelecimento, respeitando também o raio.',
+      intersects:'Liga sua localização aos estabelecimentos e seleciona as linhas que cruzam a área de atenção, respeitando também o raio.'
+    };
+    const overpassEndpoints=['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter'];
+    let map,selectedLocation=null,pickMode=false,querySequence=0,lastResults=[];
+    const searchCache=new Map();
+    const layers={location:null,radius:null,attention:null,regions:[],services:[],lines:[]};
+    const $=id=>document.getElementById(id);
+
+    function haversine(a,b){
+      const R=6371000,toRad=value=>value*Math.PI/180,dLat=toRad(b.lat-a.lat),dLon=toRad(b.lng-a.lng);
+      const q=Math.sin(dLat/2)**2+Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLon/2)**2;
+      return 2*R*Math.asin(Math.sqrt(q));
+    }
+    function escapeHTML(value){return String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]))}
+    function formatDistance(meters){return meters<1000?`${Math.round(meters)} m`:`${(meters/1000).toFixed(2).replace('.',',')} km`}
+    function osmAddress(tags={}){
+      const street=tags['addr:street'],number=tags['addr:housenumber'],district=tags['addr:suburb']||tags['addr:neighbourhood'];
+      return [[street,number].filter(Boolean).join(', '),district].filter(Boolean).join(' — ')||'Endereço não informado no OpenStreetMap';
+    }
+    function classify(tags={}){
+      if(tags.amenity==='hospital'||tags.healthcare==='hospital')return'hospital';
+      if(tags.amenity==='pharmacy'||tags.healthcare==='pharmacy')return'pharmacy';
+      return'lab';
+    }
+    function pointInPolygon(point,polygon){
+      let inside=false;
+      for(let i=0,j=polygon.length-1;i<polygon.length;j=i++){
+        const yi=polygon[i][0],xi=polygon[i][1],yj=polygon[j][0],xj=polygon[j][1];
+        const crosses=(yi>point.lat)!==(yj>point.lat)&&point.lng<(xj-xi)*(point.lat-yi)/(yj-yi)+xi;
+        if(crosses)inside=!inside;
+      }
+      return inside;
+    }
+    function orientation(a,b,c){return(b.lng-a.lng)*(c.lat-a.lat)-(b.lat-a.lat)*(c.lng-a.lng)}
+    function segmentsIntersect(a,b,c,d){
+      const o1=orientation(a,b,c),o2=orientation(a,b,d),o3=orientation(c,d,a),o4=orientation(c,d,b);
+      return(o1===0||o2===0||o1*o2<0)&&(o3===0||o4===0||o3*o4<0);
+    }
+    function lineIntersectsPolygon(a,b,polygon){
+      if(pointInPolygon(a,polygon)||pointInPolygon(b,polygon))return true;
+      for(let i=0;i<polygon.length;i++){
+        const c={lat:polygon[i][0],lng:polygon[i][1]},next=polygon[(i+1)%polygon.length],d={lat:next[0],lng:next[1]};
+        if(segmentsIntersect(a,b,c,d))return true;
+      }
+      return false;
+    }
+    function icon(color,size=16){return L.divIcon({className:'',html:`<div class="custom-pin" style="width:${size}px;height:${size}px;border-radius:50% 50% 50% 0;background:${color};transform:rotate(-45deg)"></div>`,iconSize:[size+2,size+2],iconAnchor:[(size+2)/2,size]})}
+    function clearServiceLayers(){
+      if(layers.radius)map.removeLayer(layers.radius);layers.radius=null;
+      if(layers.attention)map.removeLayer(layers.attention);layers.attention=null;
+      ['regions','services','lines'].forEach(key=>{layers[key].forEach(layer=>map.removeLayer(layer));layers[key]=[]});
+    }
+    function clearAllLayers(){clearServiceLayers();if(layers.location)map.removeLayer(layers.location);layers.location=null}
+
+    function setLocation(lat,lng,source){
+      selectedLocation={lat:Number(lat),lng:Number(lng)};pickMode=false;
+      $('pick').textContent='Selecionar no mapa';
+      $('coordinates').value=`${selectedLocation.lat.toFixed(6)}, ${selectedLocation.lng.toFixed(6)}`;
+      $('locationHelp').textContent=source==='gps'
+        ?'Localização obtida pelo dispositivo. Você também pode ajustá-la arrastando o marcador.'
+        :'Ponto definido no mapa. Arraste o marcador para ajustá-lo.';
+      $('search').disabled=false;
+      if(layers.location)map.removeLayer(layers.location);
+      layers.location=L.marker([selectedLocation.lat,selectedLocation.lng],{icon:icon('#2563eb',20),draggable:true,zIndexOffset:1200,title:'Sua localização — arraste para ajustar'})
+        .addTo(map).bindPopup('<b>Sua localização</b><br>Arraste o marcador para ajustar.');
+      layers.location.on('dragend',event=>{const point=event.target.getLatLng();setLocation(point.lat,point.lng,'map');runQuery()});
+      map.setView([selectedLocation.lat,selectedLocation.lng],Math.max(map.getZoom(),15));
+      $('mapStatus').innerHTML='<strong>Localização selecionada.</strong> Defina o raio e execute a busca.';
+    }
+
+    async function queryOverpass(query){
+      const failures=[];
+      for(const endpoint of overpassEndpoints){
+        const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),25000);
+        try{
+          const response=await fetch(endpoint,{method:'POST',body:new URLSearchParams({data:query}),signal:controller.signal,headers:{Accept:'application/json'}});
+          if(!response.ok)throw new Error(`HTTP ${response.status}`);
+          const data=await response.json();
+          if(!Array.isArray(data.elements))throw new Error('Resposta JSON inválida');
+          return data;
+        }catch(error){
+          failures.push(`${new URL(endpoint).hostname}: ${error.name==='AbortError'?'tempo esgotado':error.message}`);
+        }finally{clearTimeout(timeout)}
+      }
+      throw new Error(`Todas as instâncias Overpass falharam (${failures.join('; ')})`);
+    }
+    function buildOverpassQuery(location,radius,category){
+      const around=`(around:${radius},${location.lat},${location.lng})`,clauses=[];
+      if(category==='all'||category==='hospital'){
+        clauses.push(`nwr["amenity"="hospital"]${around};`,`nwr["healthcare"="hospital"]${around};`);
+      }
+      if(category==='all'||category==='pharmacy'){
+        clauses.push(`nwr["amenity"="pharmacy"]${around};`,`nwr["healthcare"="pharmacy"]${around};`);
+      }
+      if(category==='all'||category==='lab'){
+        clauses.push(`nwr["healthcare"="laboratory"]${around};`,`nwr["healthcare"="clinic"]["healthcare:speciality"~"radiology|diagnostic_imaging",i]${around};`);
+      }
+      return `[out:json][timeout:25];(${clauses.join('')});out tags center;`;
+    }
+    async function fetchEstablishments(location,radius,category){
+      const key=`${location.lat.toFixed(5)}:${location.lng.toFixed(5)}:${radius}:${category}`;
+      if(searchCache.has(key))return searchCache.get(key);
+      const data=await queryOverpass(buildOverpassQuery(location,radius,category)),unique=new Map();
+      for(const element of data.elements){
+        const lat=element.lat??element.center?.lat,lng=element.lon??element.center?.lon;
+        if(!Number.isFinite(lat)||!Number.isFinite(lng))continue;
+        const id=`osm-${element.type}-${element.id}`,type=classify(element.tags);
+        unique.set(id,{id,type,lat,lng,name:element.tags?.name||`${typeLabels[type]} sem nome informado`,address:osmAddress(element.tags)});
+      }
+      const result=[...unique.values()];searchCache.set(key,result);return result;
+    }
+
+    function drawResults(location,radius,operator,results){
+      clearServiceLayers();
+      layers.radius=L.circle([location.lat,location.lng],{radius,color:'#0284c7',weight:2,fillColor:'#0ea5e9',fillOpacity:.08,dashArray:'6 5'}).addTo(map);
+      if(operator==='contains'){
+        regions.forEach(region=>{
+          const containsLocation=pointInPolygon(location,region.coords);
+          const polygon=L.polygon(region.coords,{color:containsLocation?'#0f766e':'#94a3b8',fillColor:containsLocation?'#10b981':'#cbd5e1',fillOpacity:.08,weight:2,dashArray:'5 5'})
+            .addTo(map).bindPopup(`<b>${escapeHTML(region.name)}</b><br>${containsLocation?'Contém sua localização':'Não contém sua localização'}`);
+          layers.regions.push(polygon);
+        });
+      }
+      if(operator==='intersects'){
+        layers.attention=L.polygon(attention,{color:'#d97706',fillColor:'#f59e0b',fillOpacity:.16,weight:2}).addTo(map)
+          .bindPopup('<b>Área de atenção</b><br>Polígono usado na consulta de interseção.');
+        results.forEach(service=>{
+          layers.lines.push(L.polyline([[location.lat,location.lng],[service.lat,service.lng]],{color:'#64748b',weight:2,dashArray:'5 5'}).addTo(map));
+        });
+      }
+      results.forEach(service=>{
+        const marker=L.marker([service.lat,service.lng],{icon:icon(typeColors[service.type])}).addTo(map)
+          .bindPopup(`<b>${escapeHTML(service.name)}</b><br>${typeLabels[service.type]}<br>${escapeHTML(service.address)}<br><strong>${formatDistance(service.distance)}</strong><br><small>Fonte: OpenStreetMap</small>`);
+        marker.serviceId=service.id;layers.services.push(marker);
+      });
+      if(layers.location)layers.location.setZIndexOffset(1200);
+      map.fitBounds(layers.radius.getBounds(),{padding:[24,24]});
+    }
+    function renderResults(radius,data){
+      const category=$('category').selectedOptions[0].text.toLowerCase();
+      const operator=$('operator').selectedOptions[0].text.split('—')[0].trim().toLowerCase();
+      $('summary').textContent=`${data.length} resultado(s) • ${category} • ${operator} • raio de ${formatDistance(radius)}`;
+      const box=$('results');box.innerHTML='';
+      if(!data.length){
+        box.innerHTML='<div class="empty"><b>Nenhum estabelecimento encontrado</b>Tente ampliar o raio ou selecionar outra categoria.</div>';
+        $('mapStatus').innerHTML='<strong>Nenhum resultado.</strong> O OpenStreetMap não retornou estabelecimentos nesse raio.';return;
+      }
+      data.forEach((service,index)=>{
+        const item=document.createElement('article');item.className='result';item.dataset.id=service.id;
+        item.innerHTML=`<div class="result-top"><span class="rank">${index+1}</span><div><h3>${escapeHTML(service.name)}</h3><div class="type">${typeLabels[service.type]} • OpenStreetMap</div></div><div class="distance">${formatDistance(service.distance)}</div></div><div class="address">${escapeHTML(service.address)}</div>`;
+        item.onclick=()=>{
+          document.querySelectorAll('.result').forEach(element=>element.classList.remove('active'));item.classList.add('active');
+          const marker=layers.services.find(layer=>layer.serviceId===service.id);map.setView([service.lat,service.lng],17);marker?.openPopup();
+        };box.appendChild(item);
+      });
+      $('mapStatus').innerHTML=`<strong>${data.length} estabelecimento(s) encontrado(s).</strong> Clique em um resultado para localizá-lo no mapa.`;
+    }
+
+    async function runQuery(){
+      if(!map||!selectedLocation)return;
+      const sequence=++querySequence,location={...selectedLocation},radius=Number($('radius').value),category=$('category').value,operator=$('operator').value,sort=$('sort').value,button=$('search');
+      button.disabled=true;button.textContent='Consultando dados…';
+      $('summary').textContent='Buscando estabelecimentos na região…';
+      $('results').innerHTML='<div class="empty"><b>Consulta em andamento</b>Aguarde o retorno dos dados geográficos.</div>';
+      $('mapStatus').innerHTML='<strong>Consultando o OpenStreetMap…</strong>';
+      try{
+        const establishments=await fetchEstablishments(location,radius,category);
+        if(sequence!==querySequence)return;
+        let data=establishments.map(service=>({...service,distance:haversine(location,service)})).filter(service=>service.distance<=radius);
+        if(operator==='contains')data=data.filter(service=>regions.some(region=>pointInPolygon(location,region.coords)&&pointInPolygon(service,region.coords)));
+        if(operator==='intersects')data=data.filter(service=>lineIntersectsPolygon(location,service,attention));
+        data.sort(sort==='alpha'?(a,b)=>a.name.localeCompare(b.name,'pt-BR'):(a,b)=>a.distance-b.distance||a.name.localeCompare(b.name,'pt-BR'));
+        lastResults=data;drawResults(location,radius,operator,data);renderResults(radius,data);
+      }catch(error){
+        if(sequence!==querySequence)return;
+        console.error('Falha na consulta Overpass:',error);lastResults=[];clearServiceLayers();
+        $('summary').textContent='Não foi possível concluir a consulta.';
+        $('results').innerHTML='<div class="empty"><b>Falha ao consultar o OpenStreetMap</b>Os servidores públicos não responderam. Verifique sua conexão e tente novamente.</div>';
+        $('mapStatus').innerHTML='<strong>Consulta não concluída.</strong> Tente novamente em alguns instantes.';
+      }finally{
+        if(sequence===querySequence){button.disabled=!selectedLocation;button.textContent='Buscar estabelecimentos próximos'}
+      }
+    }
+
+    function requestLocation(){
+      if(!navigator.geolocation){$('locationHelp').textContent='Este navegador não oferece suporte à geolocalização. Selecione um ponto no mapa.';return}
+      const button=$('locate');button.disabled=true;button.textContent='Localizando…';$('locationHelp').textContent='Aguardando autorização do navegador…';
+      navigator.geolocation.getCurrentPosition(position=>{
+        button.disabled=false;button.textContent='Usar minha localização';
+        setLocation(position.coords.latitude,position.coords.longitude,'gps');runQuery();
+      },error=>{
+        button.disabled=false;button.textContent='Usar minha localização';
+        const messages={1:'Permissão de localização negada. Autorize-a no navegador ou selecione um ponto no mapa.',2:'Não foi possível determinar sua localização. Selecione um ponto no mapa.',3:'A localização demorou para responder. Tente novamente ou selecione um ponto no mapa.'};
+        $('locationHelp').textContent=messages[error.code]||'Não foi possível obter sua localização.';
+      },{enableHighAccuracy:true,timeout:12000,maximumAge:60000});
+    }
+    function reset(){
+      ++querySequence;selectedLocation=null;pickMode=false;lastResults=[];clearAllLayers();
+      $('coordinates').value='Nenhuma localização selecionada';$('locationHelp').textContent='Selecione uma localização para habilitar a consulta.';
+      $('category').value='all';$('radius').value='1000';$('operator').value='within';$('sort').value='distance';updateOperatorHelp();$('search').disabled=true;$('search').textContent='Buscar estabelecimentos próximos';$('pick').textContent='Selecionar no mapa';
+      $('summary').textContent='Selecione sua localização para começar.';
+      $('results').innerHTML='<div class="empty"><b>Nenhuma consulta executada</b>Use a geolocalização ou clique em um ponto no mapa.</div>';
+      $('mapStatus').innerHTML='<strong>Mapa pronto.</strong> Use sua localização ou selecione um ponto no mapa.';
+      map.setView([BH_CENTER.lat,BH_CENTER.lng],13);
+    }
+    function init(){
+      if(typeof L==='undefined'){$('mapStatus').innerHTML='<strong>Mapa indisponível.</strong> Verifique a conexão com a internet.';return}
+      map=L.map('map',{zoomControl:true}).setView([BH_CENTER.lat,BH_CENTER.lng],13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+      map.on('click',event=>{if(!pickMode)return;setLocation(event.latlng.lat,event.latlng.lng,'map');runQuery()});
+      $('mapStatus').innerHTML='<strong>Mapa pronto.</strong> Use sua localização ou selecione um ponto no mapa.';
+    }
+    $('locate').addEventListener('click',requestLocation);
+    $('pick').addEventListener('click',()=>{
+      pickMode=!pickMode;$('pick').textContent=pickMode?'Cancelar seleção':'Selecionar no mapa';
+      $('locationHelp').textContent=pickMode?'Clique no ponto desejado no mapa.':selectedLocation?'Localização mantida.':'Selecione uma localização para habilitar a consulta.';
+      $('mapStatus').innerHTML=pickMode?'<strong>Modo de seleção ativo.</strong> Clique no mapa para marcar sua localização.':'<strong>Seleção cancelada.</strong>';
+    });
+    $('search').addEventListener('click',runQuery);
+    $('sort').addEventListener('change',()=>{if(lastResults.length)runQuery()});
+    function updateOperatorHelp(){$('operatorHelp').textContent=operatorHelp[$('operator').value]}
+    $('operator').addEventListener('change',()=>{updateOperatorHelp();if(selectedLocation)runQuery()});
+    $('reset').addEventListener('click',reset);
+    updateOperatorHelp();
+    window.addEventListener('load',init);
+  </script>
+</body>
+</html>
